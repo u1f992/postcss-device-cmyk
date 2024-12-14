@@ -1,0 +1,38 @@
+@import url("./cyan.css");
+
+@page {
+    marks: crop cross;
+}
+
+p {
+    text-spacing: auto;
+    color: device-cmyk(1 1 1 1 / none);
+}
+
+.magenta-legacy {
+    color: device-cmyk(0, 1, 0, 0);
+}
+
+.magenta-modern {
+    color: device-cmyk(0 1 0 0);
+}
+
+.yellow-legacy {
+    color: device-cmyk(0, 0, 1, 0);
+}
+
+.yellow-modern {
+    color: device-cmyk(0 0 1 0);
+}
+
+.key-legacy {
+    color: device-cmyk(0, 0, 0, 1);
+}
+
+.key-modern {
+    color: device-cmyk(0 0 0 1);
+}
+
+.gradient {
+    background: linear-gradient(to right, device-cmyk(1 0 0 0) 0%, device-cmyk(0 1 0 0) 100%);
+}

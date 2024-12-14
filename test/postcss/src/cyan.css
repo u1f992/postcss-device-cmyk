@@ -1,0 +1,7 @@
+.cyan-legacy {
+    color: device-cmyk(1, 0, 0, 0);
+}
+
+.cyan-modern {
+    color: device-cmyk(1 0 0 0);
+}

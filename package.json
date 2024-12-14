@@ -1,0 +1,31 @@
+{
+  "name": "@u1f992/postcss-device-cmyk",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "format": "prettier --write src/**/*.ts postcss.config.js",
+    "build": "npm run format && tsc",
+    "test": "npm run build && postcss test/postcss/src/style.css --output test/postcss/dest/style.css"
+  },
+  "keywords": [
+    "css",
+    "device-cmyk",
+    "postcss-plugin"
+  ],
+  "homepage": "https://github.com/u1f992/postcss-device-cmyk",
+  "author": "Koutaro Mukai",
+  "license": "GPL-3.0",
+  "description": "Converts CSS device-cmyk colors to unique RGB with a reverse mapping table.",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "postcss-cli": "^11.0.0",
+    "postcss-import": "^16.1.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "lcms-wasm": "^1.0.3",
+    "postcss": "^8.4.49"
+  }
+}
