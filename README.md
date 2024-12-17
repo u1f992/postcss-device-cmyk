@@ -16,8 +16,8 @@ export default (ctx) => ({
   plugins: [
     deviceCMYK({
       profile?: string,
-      restore: bool | string = false,
-      relatedFiles: string[] as const = []
+      restore: boolean | string = false,
+      relatedFiles: readonly string[] = []
     }),
   ],
 });
@@ -34,13 +34,14 @@ If you plan to export PDFs from browsers and process them further in tools like 
 When `restore` is enabled, the `relatedFiles` option becomes important. To accurately restore the original CMYK values, all CMYK colors must map to unique RGB values. This requires analyzing every CSS file, including those imported via `@import` or loaded alongside other stylesheets in HTML. Without this comprehensive analysis, the transformation table cannot be created. To include all CSS files under the input file's directory, use the following snippet:
 
 ~~~js
-function collectFiles(dir) {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const filePath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return collectFiles(filePath);
-    }
-    return entry.isFile() && filePath.endsWith(".css") ? [filePath] : [];
+function collectFiles(dirname) {
+  return fs.readdirSync(dirname, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(dirname, entry.name);
+    return entry.isDirectory()
+      ? collectFiles(entryPath)
+      : entry.isFile() && entryPath.endsWith(".css")
+        ? [entryPath]
+        : [];
   });
 }
 ~~~

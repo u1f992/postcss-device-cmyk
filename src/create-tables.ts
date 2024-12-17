@@ -2,23 +2,24 @@ import { ciede2000 } from "./ciede2000.js";
 import {
   CMYKColorString,
   parseCMYKColor,
-  RGBColor,
-  RGBColorString,
-  parseRGBColor,
-  stringifyRGBColor,
+  Uint8RGBColor,
+  Uint8RGBColorString,
+  parseUint8RGBColor,
+  stringifyUint8RGBColor,
+  uint8RGBColor,
+  CMYKTransformer,
+  RGBToCIELABTransformer,
 } from "./color-spaces.js";
-import { CMYKToRGB, CMYKToLab, RGBToLab } from "./transform.js";
 
 function createRawTransformationTable(
   cmykStorage: Set<CMYKColorString>,
-  cmykProfile: Uint8Array,
-  out: Map<CMYKColorString, RGBColorString>
+  cmykTransformer: CMYKTransformer,
+  out: Map<CMYKColorString, Uint8RGBColorString>
 ): void {
-  using cmykToRGB = new CMYKToRGB(cmykProfile, true);
   for (const cmykJSON of cmykStorage) {
     const cmykColor = parseCMYKColor(cmykJSON);
-    const rgbColor = cmykToRGB.transform(cmykColor);
-    out.set(cmykJSON, stringifyRGBColor(rgbColor));
+    const rgbColor = cmykTransformer.toRGB(cmykColor);
+    out.set(cmykJSON, stringifyUint8RGBColor(rgbColor));
   }
 }
 
@@ -33,7 +34,7 @@ function reversed<TK, TV>(map: Map<TK, TV>): Map<TV, Set<TK>> {
   return ret;
 }
 
-function generateVariants(rgb: RGBColor, delta: number): RGBColor[] {
+function generateVariants(rgb: Uint8RGBColor, delta: number): Uint8RGBColor[] {
   const ranges = rgb.map((c) =>
     Array.from({ length: delta * 2 + 1 }, (_, i) =>
       Math.max(0, Math.min(255, c - delta + i))
@@ -45,21 +46,20 @@ function generateVariants(rgb: RGBColor, delta: number): RGBColor[] {
         ranges[1].flatMap((g) =>
           ranges[2]
             .filter((b) => r !== rgb[0] || g !== rgb[1] || b !== rgb[2])
-            .map((b) => stringifyRGBColor([r, g, b]))
+            .map((b) => stringifyUint8RGBColor(uint8RGBColor([r, g, b])))
         )
       )
     )
-  ).map((str) => parseRGBColor(str));
+  ).map((str) => parseUint8RGBColor(str));
 }
 
 function deduplicate(
-  map: Map<CMYKColorString, RGBColorString>,
-  cmykProfile: Uint8Array
+  map: Map<CMYKColorString, Uint8RGBColorString>,
+  cmykTransformer: CMYKTransformer
 ): void {
-  const nextRGBStorage = new Map<CMYKColorString, RGBColorString[]>();
+  const nextRGBStorage = new Map<CMYKColorString, Uint8RGBColorString[]>();
 
-  using cmykToLab = new CMYKToLab(cmykProfile, true);
-  using rgbToLab = new RGBToLab(true);
+  using rgbToCIELABTransformer = new RGBToCIELABTransformer(true);
 
   let conflicting = new Map(
     Array.from(reversed(map).entries()).filter(([_, v]) => v.size !== 1)
@@ -67,13 +67,13 @@ function deduplicate(
 
   while (conflicting.size !== 0) {
     for (const [rgb, cmykSet] of conflicting.entries()) {
-      const rgbColor = parseRGBColor(rgb);
-      const labFromRGB = rgbToLab.transform(rgbColor);
+      const rgbColor = parseUint8RGBColor(rgb);
+      const labFromRGB = rgbToCIELABTransformer.toCIELAB(rgbColor);
 
       const notChosen = Array.from(cmykSet)
         .map((cmyk) => ({
           cmyk,
-          lab: cmykToLab.transform(parseCMYKColor(cmyk)),
+          lab: cmykTransformer.toCIELAB(parseCMYKColor(cmyk)),
         }))
         .sort(
           (a, b) =>
@@ -88,14 +88,14 @@ function deduplicate(
           const nextRGBList = generateVariants(rgbColor, 10)
             .map((rgb) => ({
               rgb,
-              lab: rgbToLab.transform(rgb),
+              lab: rgbToCIELABTransformer.toCIELAB(rgb),
             }))
             .sort(
               (a, b) =>
                 ciede2000(labFromRGB, a.lab).delta_E_00 -
                 ciede2000(labFromRGB, b.lab).delta_E_00
             )
-            .map(({ rgb }) => stringifyRGBColor(rgb));
+            .map(({ rgb }) => stringifyUint8RGBColor(rgb));
           nextRGBList.unshift(rgb);
           nextRGBStorage.set(cmyk, nextRGBList);
         }
@@ -118,19 +118,19 @@ function deduplicate(
 
 export function createTransformationTable(
   cmykStorage: Set<CMYKColorString>,
-  cmykProfile: Uint8Array,
-  outTransformationTable: Map<CMYKColorString, RGBColorString>
+  cmykTransformer: CMYKTransformer,
+  outTransformationTable: Map<CMYKColorString, Uint8RGBColorString>
 ): void {
   createRawTransformationTable(
     cmykStorage,
-    cmykProfile,
+    cmykTransformer,
     outTransformationTable
   );
-  deduplicate(outTransformationTable, cmykProfile);
+  deduplicate(outTransformationTable, cmykTransformer);
 }
 
 export function createRestorationTable(
-  transformationTable: Map<CMYKColorString, RGBColorString>
+  transformationTable: Map<CMYKColorString, Uint8RGBColorString>
 ) {
   return new Map(
     Array.from(transformationTable.entries()).map(([v, k]) => [k, v])

@@ -1,5 +1,3 @@
-import { CMYKColor } from "./color-spaces.js";
-
 /**
  * https://www.w3.org/TR/css-syntax/#newline
  */
@@ -124,12 +122,12 @@ const modernDeviceCMYKSyntax = new RegExp(
  * - k: ret[8]
  * - a?: ret[9]
  */
-export const deviceCMYK = new RegExp(
+const deviceCMYK = new RegExp(
   `(?:${legacyDeviceCMYKSyntax.source})|(?:${modernDeviceCMYKSyntax.source})`,
   "g"
 );
 
-type NumberOrPercentageOrNone = number | `${number}%` | "none";
+export type NumberOrPercentageOrNone = number | `${number}%` | "none";
 
 function parseLegacyComponent(val: string): number {
   return parseFloat(val);
@@ -148,6 +146,10 @@ export type DeviceCMYKParseResult = {
   k: NumberOrPercentageOrNone;
   a?: NumberOrPercentageOrNone;
 };
+
+export function matchDeviceCMYK(input: string): RegExpMatchArray | null {
+  return input.match(deviceCMYK);
+}
 
 /**
  * https://drafts.csswg.org/css-color-5/#device-cmyk
@@ -172,17 +174,4 @@ export function parseDeviceCMYK(input: string): DeviceCMYKParseResult | null {
             ? {}
             : { a: parseModernComponent(match[9]) }),
         };
-}
-
-export function sanitize(cmyka: DeviceCMYKParseResult): CMYKColor {
-  const fn = (val: NumberOrPercentageOrNone) =>
-    typeof val === "number"
-      ? Math.max(0, Math.min(1, val))
-      : val.endsWith("%")
-        ? Math.max(
-            0,
-            Math.min(100, parseFloat((val as `${number}%`).slice(0, -1)))
-          ) / 100
-        : 0;
-  return [fn(cmyka.c), fn(cmyka.m), fn(cmyka.y), fn(cmyka.k)];
 }
