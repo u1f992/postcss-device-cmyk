@@ -4,10 +4,10 @@ import {
   CSSNone,
   CSSNumber,
   CSSPercentage,
-  toCSSNone,
-  toCSSNumber,
-  toCSSPercentage,
-} from "./util.js";
+  asCSSNone,
+  asCSSNumber,
+  asCSSPercentage,
+} from "./css-types.js";
 
 function extractLegacyDeviceCMYKSyntax({
   nodes,
@@ -22,22 +22,22 @@ function extractLegacyDeviceCMYKSyntax({
   );
   const [c, m, y, k] = [
     filtered[0] && filtered[0].type === "word"
-      ? toCSSNumber(filtered[0].value)
+      ? asCSSNumber(filtered[0].value)
       : null,
     filtered[1].type === "div" &&
     filtered[1].value === "," &&
     filtered[2].type === "word"
-      ? toCSSNumber(filtered[2].value)
+      ? asCSSNumber(filtered[2].value)
       : null,
     filtered[3].type === "div" &&
     filtered[3].value === "," &&
     filtered[4].type === "word"
-      ? toCSSNumber(filtered[4].value)
+      ? asCSSNumber(filtered[4].value)
       : null,
     filtered[5].type === "div" &&
     filtered[5].value === "," &&
     filtered[6].type === "word"
-      ? toCSSNumber(filtered[6].value)
+      ? asCSSNumber(filtered[6].value)
       : null,
   ];
   return c !== null && m !== null && y !== null && k !== null
@@ -70,33 +70,33 @@ function extractModernDeviceCMYKSyntax({
   );
   const [c, m, y, k, a] = [
     filtered[0] && filtered[0].type === "word"
-      ? toCSSNumber(filtered[0].value) ||
-        toCSSPercentage(filtered[0].value) ||
-        toCSSNone(filtered[0].value)
+      ? asCSSNumber(filtered[0].value) ||
+        asCSSPercentage(filtered[0].value) ||
+        asCSSNone(filtered[0].value)
       : null,
     filtered[1].type === "space" && filtered[2] && filtered[2].type === "word"
-      ? toCSSNumber(filtered[2].value) ||
-        toCSSPercentage(filtered[2].value) ||
-        toCSSNone(filtered[2].value)
+      ? asCSSNumber(filtered[2].value) ||
+        asCSSPercentage(filtered[2].value) ||
+        asCSSNone(filtered[2].value)
       : null,
     filtered[3].type === "space" && filtered[4] && filtered[4].type === "word"
-      ? toCSSNumber(filtered[4].value) ||
-        toCSSPercentage(filtered[4].value) ||
-        toCSSNone(filtered[4].value)
+      ? asCSSNumber(filtered[4].value) ||
+        asCSSPercentage(filtered[4].value) ||
+        asCSSNone(filtered[4].value)
       : null,
     filtered[5].type === "space" && filtered[6] && filtered[6].type === "word"
-      ? toCSSNumber(filtered[6].value) ||
-        toCSSPercentage(filtered[6].value) ||
-        toCSSNone(filtered[6].value)
+      ? asCSSNumber(filtered[6].value) ||
+        asCSSPercentage(filtered[6].value) ||
+        asCSSNone(filtered[6].value)
       : null,
     filtered[7] &&
     filtered[7].type === "div" &&
     filtered[7].value === "/" &&
     filtered[8] &&
     filtered[8].type === "word"
-      ? toCSSNumber(filtered[8].value) ||
-        toCSSPercentage(filtered[8].value) ||
-        toCSSNone(filtered[8].value)
+      ? asCSSNumber(filtered[8].value) ||
+        asCSSPercentage(filtered[8].value) ||
+        asCSSNone(filtered[8].value)
       : null,
   ];
   return c !== null && m !== null && y !== null && k !== null

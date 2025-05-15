@@ -18,7 +18,7 @@ import { deviceCMYK, parseDeviceCMYK, sanitize } from "./_device-cmyk.js";
 
 export { parseDeviceCMYK };
 
-import { collectAtColorProfileRules } from "./color-profile.js";
+import { collectAtColorProfileRules } from "./at-color-profile.js";
 import { collectDeviceCMYKFunctions } from "./device-cmyk.js";
 
 const gather = Object.assign(

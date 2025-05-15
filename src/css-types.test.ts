@@ -1,4 +1,4 @@
-import { toCSSNumber, toCSSPercentage } from "./util.js";
+import { asCSSNumber, asCSSPercentage } from "./css-types.js";
 
 import * as test from "node:test";
 import assert from "node:assert";
@@ -37,13 +37,13 @@ test.test("CSSNumber", async (t) => {
       ".1E+1",
     ];
     for (const testCase of testCases) {
-      assert.notStrictEqual(toCSSNumber(testCase), null, `${testCase}`);
+      assert.notStrictEqual(asCSSNumber(testCase), null, `${testCase}`);
     }
   });
   await t.test("invalid", async () => {
     const testCases = ["", "00", "a"];
     for (const testCase of testCases) {
-      assert.strictEqual(toCSSNumber(testCase), null);
+      assert.strictEqual(asCSSNumber(testCase), null);
     }
   });
 });
@@ -82,13 +82,13 @@ test.test("CSSPercentage", async (t) => {
       ".1E+1%",
     ];
     for (const testCase of testCases) {
-      assert.notStrictEqual(toCSSPercentage(testCase), null, `${testCase}`);
+      assert.notStrictEqual(asCSSPercentage(testCase), null, `${testCase}`);
     }
   });
   await t.test("invalid", async () => {
     const testCases = ["", "00", "a", "%"];
     for (const testCase of testCases) {
-      assert.strictEqual(toCSSPercentage(testCase), null);
+      assert.strictEqual(asCSSPercentage(testCase), null);
     }
   });
 });
