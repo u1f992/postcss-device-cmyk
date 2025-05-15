@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "lcms-wasm": "^1.0.3",
-    "postcss": "^8.4.49"
+    "postcss": "^8.4.49",
+    "postcss-value-parser": "^4.2.0"
   }
 }
