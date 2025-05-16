@@ -1,0 +1,52 @@
+/__setrgbcolor /setrgbcolor load def
+/setrgbcolor {
+  10 dict begin
+  /B exch def
+  /G exch def
+  /R exch def
+  /rgb [R G B] def
+  /table [
+    [ [0.00000000000000000000 0.00000000000000000000 0.00000000000000000000]     [0.00000000000000000000 0.00000000000000000000 0.00000000000000000000 1.00000000000000000000] ]
+    [ [1.00000000000000000000 0.00000000000000000000 0.00000000000000000000]     [0.00000000000000000000 1.00000000000000000000 0.00000000000000000000 0.00000000000000000000] ]
+  ] def
+  /epsilon 0.00010000000000000000 def
+  /eqarray {
+    5 dict begin
+    /b exch def
+    /a exch def
+    a length b length ne {
+      false
+    } {
+      /equal true def
+      0 1 a length 1 sub {
+        /i exch def
+        a i get
+        b i get
+        sub abs epsilon gt {
+          /equal false def
+          exit
+        } if
+      } for
+      equal
+    } ifelse
+    end
+  } def
+  /found false def
+  table {
+    /entry exch def
+    entry 0 get rgb eqarray {
+      entry 1 get aload pop setcmykcolor
+      /found true def
+      exit
+    } if
+  } forall
+  found not {
+    (% Warning: RGB color not defined in LUT: ) print
+    rgb 0 get 20 string cvs print ( ) print
+    rgb 1 get 20 string cvs print ( ) print
+    rgb 2 get 20 string cvs print (
+) print
+    R G B __setrgbcolor
+  } if
+  end
+} bind def
