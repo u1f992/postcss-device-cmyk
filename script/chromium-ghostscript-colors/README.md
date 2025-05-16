@@ -1,0 +1,1 @@
+ChromiumとGhostscriptで表現できる色
