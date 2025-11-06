@@ -19,12 +19,7 @@ import {
   createTransformationTable,
   createRestorationTable,
 } from "./create-tables.js";
-import {
-  DeviceCMYKParseResult,
-  matchDeviceCMYK,
-  NumberOrPercentageOrNone,
-  parseDeviceCMYK,
-} from "./device-cmyk.js";
+import { deviceCMYK, parseDeviceCMYK, sanitize } from "./_device-cmyk.js";
 
 function sanitize(cmyka: DeviceCMYKParseResult): CMYKColor {
   const fn = (val: NumberOrPercentageOrNone) =>
@@ -80,6 +75,9 @@ function pluginWithoutRestoration(
     },
   };
 }
+
+import { collectAtColorProfileRules } from "./at-color-profile.js";
+import { collectDeviceCMYKFunctions } from "./device-cmyk.js";
 
 const gather = Object.assign(
   (cmykStorage: Set<CMYKColorString>) =>
@@ -204,5 +202,46 @@ export default Object.assign(
   },
   {
     postcss: true,
+  }
+);
+
+export const PLUGIN_ID = "postcss-device-cmyk";
+export const devickCMYK: postcss.PluginCreator<void> = Object.assign(
+  () => ({
+    postcssPlugin: PLUGIN_ID,
+    // Use Once() instead of AtRule() to collect all @color-profiles before Once() in the next plugin
+    Once(root: postcss.Root, { result }: postcss.Helpers) {
+      const { atColorProfileRules, warnings: atColorProfileRulesWarnings } =
+        collectAtColorProfileRules(root);
+      const { deviceCMYKFunctions, warnings: deviceCMYKFunctionsWarnings } =
+        collectDeviceCMYKFunctions(root);
+
+      for (const warning of [
+        ...atColorProfileRulesWarnings,
+        ...deviceCMYKFunctionsWarnings,
+      ]) {
+        result.messages.push({
+          type: "warning",
+          plugin: PLUGIN_ID,
+          warning,
+        } as postcss.Message);
+      }
+
+      result.messages.push({
+        type: "data",
+        plugin: `${PLUGIN_ID}/collect-at-color-profile-rules`,
+        data: atColorProfileRules,
+      } as postcss.Message);
+
+      result.messages.push({
+        type: "data",
+        plugin: `${PLUGIN_ID}/collect-device-cmyk-functions`,
+        data: deviceCMYKFunctions,
+      } as postcss.Message);
+    },
+  }),
+  {
+    /* FIXME: 型 'boolean' を型 'true' に割り当てることはできません。ts(2322) */
+    postcss: true as true,
   }
 );

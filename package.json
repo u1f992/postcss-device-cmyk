@@ -5,7 +5,7 @@
   "scripts": {
     "format": "prettier --write src/**/*.ts postcss.config.js",
     "build": "npm run format && tsc",
-    "test": "npm run build && postcss test/postcss/src/style.css --output test/postcss/dest/style.css"
+    "test": "npm run build && node --test"
   },
   "keywords": [
     "css",
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "lcms-wasm": "^1.0.3",
-    "postcss": "^8.4.49"
+    "postcss": "^8.4.49",
+    "postcss-value-parser": "^4.2.0"
   }
 }
