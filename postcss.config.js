@@ -1,35 +1,42 @@
 // @ts-check
 
+import fs from "node:fs";
 import path from "node:path";
 
-import atImport from "postcss-import";
 import deviceCMYK from "./dist/index.js";
 
 // FIXME: Is there a way to retrieve `outputDir` from `ctx`?
-const outputDir = (() => {
-  const idx = process.argv.findLastIndex(
-    (arg) => arg === "-o" || arg === "--output"
-  );
-  return idx !== -1 && process.argv[idx + 1]
-    ? path.dirname(process.argv[idx + 1])
-    : "";
-})();
+const outputDir = ((argv) => {
+  const findLast = (flags) => {
+    const idx = argv.findLastIndex((arg) => flags.includes(arg));
+    return idx !== -1 && argv[idx + 1] ? argv[idx + 1] : null;
+  };
+  const dir = findLast(["-d", "--dir"]);
+  const output = findLast(["-o", "--output"]);
+  return dir
+    ? path.resolve(dir)
+    : output
+      ? path.dirname(path.resolve(output))
+      : "";
+})(process.argv);
+
+function collectFiles(dirname) {
+  return fs.readdirSync(dirname, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(dirname, entry.name);
+    return entry.isDirectory()
+      ? collectFiles(entryPath)
+      : entry.isFile() && entryPath.endsWith(".css")
+        ? [entryPath]
+        : [];
+  });
+}
 
 export default (ctx) => ({
-  map: true,
   plugins: [
-    // This plugin works seamlessly with `postcss-import`;
-    // otherwise, you would need to list all dependent files in `otherFiles`.
-    atImport({ root: ctx.file.dirname }),
-
     deviceCMYK({
-      cmykProfilePath: "../JapanColor2001Coated.icc",
-      restoreJSONPath: path.join(outputDir, "device-cmyk.restore.json"),
-      otherFiles: [
-        // You can also specify additional CSS files that are not directly
-        // `@import`ed in the input CSS but are linked together in the HTML.
-        path.join(ctx.file.dirname, "cyan2.css"),
-      ],
+      profile: "../JapanColor2001Coated.icc",
+      restore: outputDir,
+      relatedFiles: collectFiles(ctx.file.dirname),
     }),
   ],
 });
