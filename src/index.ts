@@ -242,6 +242,6 @@ export const devickCMYK: postcss.PluginCreator<void> = Object.assign(
   }),
   {
     /* FIXME: 型 'boolean' を型 'true' に割り当てることはできません。ts(2322) */
-    postcss: true as true,
+    postcss: true as const,
   }
 );

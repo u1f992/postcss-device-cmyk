@@ -1,9 +1,9 @@
+// @ts-check
+
 /**
- * @see https://prettier.io/docs/en/configuration.html
+ * @see https://prettier.io/docs/configuration
  * @type {import("prettier").Config}
  */
-const config = {
-  trailingComma: "es5",
-};
+const prettierConfig = { trailingComma: "es5" };
 
-export default config;
+export default prettierConfig;
