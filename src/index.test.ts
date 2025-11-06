@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import postcss from "postcss";
 import { devickCMYK } from "./index.js";
 

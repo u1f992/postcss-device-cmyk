@@ -5,7 +5,7 @@ import * as test from "node:test";
 
 import postcss from "postcss";
 
-test.test("collectAtColorProfileRules", async (t) => {
+test.test("collectAtColorProfileRules", async () => {
   assert.deepStrictEqual(
     Object.fromEntries(
       collectAtColorProfileRules(

@@ -6,7 +6,7 @@ import {
   cmsFLAGS_NOOPTIMIZE,
   cmsFLAGS_BLACKPOINTCOMPENSATION,
 
-  // @ts-ignore
+  // @ts-expect-error ignore libraries without d.ts files
 } from "lcms-wasm";
 
 const lcms = await instantiate();
@@ -17,7 +17,7 @@ function uint8Number(num: number): Uint8Number {
   return Math.min(255, Math.max(0, Math.round(num))) as Uint8Number;
 }
 
-type NormalizedNumber = number & { __normalizedNumber: never };
+export type NormalizedNumber = number & { __normalizedNumber: never };
 function normalizedNumber(num: number): NormalizedNumber {
   return Math.min(1, Math.max(0, num)) as NormalizedNumber;
 }
@@ -220,7 +220,7 @@ export class ManagedCMYKTransformer implements CMYKTransformer {
   }
 
   toRGB(cmyk: CMYKColor): Uint8RGBColor {
-    // @ts-ignore
+    // @ts-expect-error ignore libraries without d.ts files
     return uint8RGBColor([
       ...lcms.cmsDoTransform(
         this.#cmykToRGBTransformer,
@@ -235,7 +235,7 @@ export class ManagedCMYKTransformer implements CMYKTransformer {
   }
 
   toCIELAB(cmyk: CMYKColor): CIELABColor {
-    // @ts-ignore
+    // @ts-expect-error ignore libraries without d.ts files
     return [
       ...lcms.cmsDoTransform(
         this.#cmykToCIELABTransformer,
@@ -296,7 +296,7 @@ export class RGBToCIELABTransformer {
   }
 
   toCIELAB(rgb: Uint8RGBColor): CIELABColor {
-    // @ts-ignore
+    // @ts-expect-error ignore libraries without d.ts files
     return [
       ...lcms.cmsDoTransform(
         this.#rgbToCIELABTransformer,

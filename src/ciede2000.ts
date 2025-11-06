@@ -18,6 +18,7 @@ function radians(deg: number): number {
  * Exception raised for invalid color values.
  */
 class InvalidColorValues extends Error {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tuple: any[];
 
   /**
@@ -27,6 +28,7 @@ class InvalidColorValues extends Error {
    * @param message explanation of the error
    */
   constructor(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tuple: any[],
     message = "Tuple not in valid (L*, a*, b*) format"
   ) {

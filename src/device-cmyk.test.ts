@@ -330,6 +330,7 @@ const testCases = {
 };
 
 async function runTests(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   obj: Record<string, [string, string[]] | Record<string, any>>,
   t: test.TestContext,
   path: string[]

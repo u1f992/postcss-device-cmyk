@@ -1,9 +1,11 @@
-import { CMYKColor } from "./color-spaces.js";
+import { CMYKColor, NormalizedNumber } from "./color-spaces.js";
 
 /**
  * https://www.w3.org/TR/css-syntax/#newline
  */
-const newline = /\x0a/;
+const newline =
+  // eslint-disable-next-line no-control-regex
+  /\x0a/;
 
 /**
  * https://www.w3.org/TR/css-syntax/#whitespace
@@ -58,7 +60,7 @@ const multNum = (re: RegExp, a: number) => {
  *
  * https://drafts.csswg.org/css-values-4/#number-value
  */
-const number = /(?:(?:[\+-]?\d+?)|(?:[\+-]?\d*?\.\d+?))(?:[eE][\+-]?\d+?)?/;
+const number = /(?:(?:[+-]?\d+?)|(?:[+-]?\d*?\.\d+?))(?:[eE][+-]?\d+?)?/;
 
 /**
  * When written literally, a percentage consists of a [number](https://drafts.csswg.org/css-values-4/#number)
@@ -176,13 +178,13 @@ export function parseDeviceCMYK(input: string): DeviceCMYKParseResult | null {
 
 export function sanitize(cmyka: DeviceCMYKParseResult): CMYKColor {
   const fn = (val: NumberOrPercentageOrNone) =>
-    typeof val === "number"
+    (typeof val === "number"
       ? Math.max(0, Math.min(1, val))
       : val.endsWith("%")
         ? Math.max(
             0,
             Math.min(100, parseFloat((val as `${number}%`).slice(0, -1)))
           ) / 100
-        : 0;
-  return [fn(cmyka.c), fn(cmyka.m), fn(cmyka.y), fn(cmyka.k)];
+        : 0) as NormalizedNumber;
+  return [fn(cmyka.c), fn(cmyka.m), fn(cmyka.y), fn(cmyka.k)] as CMYKColor;
 }

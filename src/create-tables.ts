@@ -62,7 +62,7 @@ function deduplicate(
   using rgbToCIELABTransformer = new RGBToCIELABTransformer(true);
 
   let conflicting = new Map(
-    Array.from(reversed(map).entries()).filter(([_, v]) => v.size !== 1)
+    Array.from(reversed(map).entries()).filter(([, v]) => v.size !== 1)
   );
 
   while (conflicting.size !== 0) {
@@ -111,7 +111,7 @@ function deduplicate(
       }
     }
     conflicting = new Map(
-      Array.from(reversed(map).entries()).filter(([_, v]) => v.size !== 1)
+      Array.from(reversed(map).entries()).filter(([, v]) => v.size !== 1)
     );
   }
 }

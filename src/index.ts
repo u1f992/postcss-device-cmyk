@@ -9,8 +9,6 @@ import {
   stringifyCMYKColor,
   Uint8RGBColorString,
   parseUint8RGBColor,
-  CMYKColor,
-  cmykColor,
   ManagedCMYKTransformer,
   getNaiveCMYKTransformer,
   CMYKTransformer,
@@ -19,20 +17,7 @@ import {
   createTransformationTable,
   createRestorationTable,
 } from "./create-tables.js";
-import { deviceCMYK, parseDeviceCMYK, sanitize } from "./_device-cmyk.js";
-
-function sanitize(cmyka: DeviceCMYKParseResult): CMYKColor {
-  const fn = (val: NumberOrPercentageOrNone) =>
-    typeof val === "number"
-      ? Math.max(0, Math.min(1, val))
-      : val.endsWith("%")
-        ? Math.max(
-            0,
-            Math.min(100, parseFloat((val as `${number}%`).slice(0, -1)))
-          ) / 100
-        : 0;
-  return cmykColor([fn(cmyka.c), fn(cmyka.m), fn(cmyka.y), fn(cmyka.k)]);
-}
+import { parseDeviceCMYK, sanitize } from "./_device-cmyk.js";
 
 function pluginWithoutRestoration(
   cmykProfile: Uint8Array | null
@@ -47,7 +32,7 @@ function pluginWithoutRestoration(
             : getNaiveCMYKTransformer();
         },
         Declaration(decl) {
-          matchDeviceCMYK(decl.value)
+          parseDeviceCMYK(decl.value)
             ?.map((match) => ({ match, rawCMYKA: parseDeviceCMYK(match) }))
             .filter(({ rawCMYKA }) => rawCMYKA !== null)
             .forEach(({ match, rawCMYKA }) => {
@@ -93,6 +78,7 @@ const gather = Object.assign(
   { postcss: true }
 );
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function writeRestoreJSON(outputDir: string, obj: Record<string, any>) {
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
@@ -240,8 +226,5 @@ export const devickCMYK: postcss.PluginCreator<void> = Object.assign(
       } as postcss.Message);
     },
   }),
-  {
-    /* FIXME: 型 'boolean' を型 'true' に割り当てることはできません。ts(2322) */
-    postcss: true as const,
-  }
+  { postcss: true as const }
 );
