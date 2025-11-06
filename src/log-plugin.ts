@@ -1,18 +1,6 @@
 import postcss from "postcss";
 import valueParser from "postcss-value-parser";
 
-function isNumberWord(
-  node: valueParser.Node | undefined
-): node is valueParser.WordNode & { value: `${number}` } {
-  if (!node || node.type !== "word") {
-    return false;
-  }
-  const ret = parseFloat(node.value);
-  if (Number.isNaN(ret)) {
-    return false;
-  }
-  return true;
-}
 function isDivComma(
   node: valueParser.Node | undefined
 ): node is valueParser.DivNode & { value: "," } {
@@ -38,13 +26,39 @@ function clamp(num: number) {
   return Math.max(0, Math.min(num, 1));
 }
 
+function parseNumberOrPercentage(node: valueParser.Node | undefined) {
+  if (!node || node.type !== "word") {
+    return null;
+  }
+  const value = node.value.trim();
+  if (value.endsWith("%")) {
+    const num = Number.parseFloat(value.slice(0, -1));
+    if (!Number.isFinite(num)) {
+      return null;
+    }
+    return num / 100;
+  } else {
+    const num = Number.parseFloat(value);
+    if (!Number.isFinite(num)) {
+      return null;
+    }
+    return num;
+  }
+}
+
 function parseCMYKComponents(nodes: valueParser.Node[]) {
   const withoutComments = nodes.filter((node) => node.type !== "comment");
-  const shouldC = isNumberWord(withoutComments[0]);
-  const shouldM = isNumberWord(withoutComments[2]);
-  const shouldY = isNumberWord(withoutComments[4]);
-  const shouldK = isNumberWord(withoutComments[6]);
-  if (!(shouldC && shouldM && shouldY && shouldK)) {
+  console.log(withoutComments);
+  const shouldC = parseNumberOrPercentage(withoutComments[0]);
+  const shouldM = parseNumberOrPercentage(withoutComments[2]);
+  const shouldY = parseNumberOrPercentage(withoutComments[4]);
+  const shouldK = parseNumberOrPercentage(withoutComments[6]);
+  if (
+    shouldC === null ||
+    shouldM === null ||
+    shouldY === null ||
+    shouldK === null
+  ) {
     return null;
   }
   if (
@@ -52,17 +66,26 @@ function parseCMYKComponents(nodes: valueParser.Node[]) {
     isDivComma(withoutComments[3]) &&
     isDivComma(withoutComments[5])
   ) {
-    const c = clamp(parseFloat(withoutComments[0].value));
-    const m = clamp(parseFloat(withoutComments[2].value));
-    const y = clamp(parseFloat(withoutComments[4].value));
-    const k = clamp(parseFloat(withoutComments[6].value));
-    return { c, m, y, k, a: null };
+    return {
+      c: clamp(shouldC),
+      m: clamp(shouldM),
+      y: clamp(shouldY),
+      k: clamp(shouldK),
+      a: 1,
+    };
   } else if (
     isSpace(withoutComments[1]) &&
     isSpace(withoutComments[3]) &&
     isSpace(withoutComments[5])
   ) {
-    return {};
+    const mayA = parseNumberOrPercentage(withoutComments[8]);
+    return {
+      c: clamp(shouldC),
+      m: clamp(shouldM),
+      y: clamp(shouldY),
+      k: clamp(shouldK),
+      a: isDivSlash(withoutComments[7]) && mayA !== null ? mayA : 1,
+    };
   }
   return null;
 }
@@ -129,6 +152,9 @@ const css = `
   --legacy-no-space-comment-1: device-cmyk(0/**/,0.1,0.2,0.3);
 
   --modern: device-cmyk(0 0.1 0.2 0.3);
+  --modern-percentage: device-cmyk(0 10% 20% 30%);
+
+  --modern-alpha: device-cmyk(0 0.1 0.2 0.3 / 0.5);
 
   color: device-cmyk(単色);
   background: linear-gradient(90deg, #fff, device-cmyk("グラデ1"), device-cmyk("グラデ2"));
