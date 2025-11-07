@@ -1,149 +1,169 @@
 import postcss from "postcss";
 import valueParser from "postcss-value-parser";
 
-function isDivComma(
+const isComma = (
   node: valueParser.Node | undefined
-): node is valueParser.DivNode & { value: "," } {
-  if (!node || node.type !== "div" || node.value !== ",") {
-    return false;
-  }
-  return true;
-}
-function isSpace(
+): node is valueParser.DivNode & { value: "," } =>
+  !!node && node.type === "div" && node.value === ",";
+const isSpace = (
   node: valueParser.Node | undefined
-): node is valueParser.SpaceNode {
-  return !!node && node.type === "space";
-}
-function isDivSlash(
+): node is valueParser.SpaceNode => !!node && node.type === "space";
+const isSlash = (
   node: valueParser.Node | undefined
-): node is valueParser.DivNode & { value: "/" } {
-  if (!node || node.type !== "div" || node.value !== "/") {
-    return false;
-  }
-  return true;
-}
-function clamp(num: number) {
-  return Math.max(0, Math.min(num, 1));
-}
+): node is valueParser.DivNode & { value: "/" } =>
+  !!node && node.type === "div" && node.value === "/";
+const clamp = (num: number) => Math.max(0, Math.min(num, 1));
 
-function parseNumberOrPercentage(node: valueParser.Node | undefined) {
+function parseNumberOrPercentageOrNone(node: valueParser.Node | undefined) {
   if (!node || node.type !== "word") {
     return null;
   }
   const value = node.value.trim();
-  if (value.endsWith("%")) {
+  if (value === "none") {
+    return "none";
+  } else if (value.endsWith("%")) {
     const num = Number.parseFloat(value.slice(0, -1));
-    if (!Number.isFinite(num)) {
-      return null;
-    }
-    return num / 100;
+    return !Number.isFinite(num) ? null : num / 100;
   } else {
     const num = Number.parseFloat(value);
-    if (!Number.isFinite(num)) {
-      return null;
-    }
-    return num;
+    return !Number.isFinite(num) ? null : num;
   }
 }
+type CMYKColor = [
+  c: number | "none",
+  m: number | "none",
+  y: number | "none",
+  k: number | "none",
+  a: number | "none" | null,
+];
+type RestrictedCMYKColor = [
+  c: number,
+  m: number,
+  y: number,
+  k: number,
+  a: number,
+];
 
-function parseCMYKComponents(nodes: valueParser.Node[]) {
+/**
+ * @see https://drafts.csswg.org/css-color-5/#device-cmyk
+ */
+function parseCMYKComponents(nodes: valueParser.Node[]): CMYKColor | null {
   const withoutComments = nodes.filter((node) => node.type !== "comment");
-  console.log(withoutComments);
-  const shouldC = parseNumberOrPercentage(withoutComments[0]);
-  const shouldM = parseNumberOrPercentage(withoutComments[2]);
-  const shouldY = parseNumberOrPercentage(withoutComments[4]);
-  const shouldK = parseNumberOrPercentage(withoutComments[6]);
-  if (
+  // console.debug(withoutComments);
+  const shouldC = parseNumberOrPercentageOrNone(withoutComments[0]);
+  const shouldM = parseNumberOrPercentageOrNone(withoutComments[2]);
+  const shouldY = parseNumberOrPercentageOrNone(withoutComments[4]);
+  const shouldK = parseNumberOrPercentageOrNone(withoutComments[6]);
+  return ![7, 9].includes(withoutComments.length) ||
     shouldC === null ||
     shouldM === null ||
     shouldY === null ||
     shouldK === null
-  ) {
-    return null;
-  }
-  if (
-    isDivComma(withoutComments[1]) &&
-    isDivComma(withoutComments[3]) &&
-    isDivComma(withoutComments[5])
-  ) {
-    return {
-      c: clamp(shouldC),
-      m: clamp(shouldM),
-      y: clamp(shouldY),
-      k: clamp(shouldK),
-      a: 1,
-    };
-  } else if (
-    isSpace(withoutComments[1]) &&
-    isSpace(withoutComments[3]) &&
-    isSpace(withoutComments[5])
-  ) {
-    const mayA = parseNumberOrPercentage(withoutComments[8]);
-    return {
-      c: clamp(shouldC),
-      m: clamp(shouldM),
-      y: clamp(shouldY),
-      k: clamp(shouldK),
-      a: isDivSlash(withoutComments[7]) && mayA !== null ? mayA : 1,
-    };
-  }
-  return null;
+    ? null
+    : shouldC !== "none" &&
+        isComma(withoutComments[1]) &&
+        shouldM !== "none" &&
+        isComma(withoutComments[3]) &&
+        shouldY !== "none" &&
+        isComma(withoutComments[5]) &&
+        shouldK !== "none"
+      ? [clamp(shouldC), clamp(shouldM), clamp(shouldY), clamp(shouldK), null]
+      : isSpace(withoutComments[1]) &&
+          isSpace(withoutComments[3]) &&
+          isSpace(withoutComments[5])
+        ? (() => {
+            const mayA = parseNumberOrPercentageOrNone(withoutComments[8]);
+            return [
+              shouldC === "none" ? ("none" as const) : clamp(shouldC),
+              shouldM === "none" ? ("none" as const) : clamp(shouldM),
+              shouldY === "none" ? ("none" as const) : clamp(shouldY),
+              shouldK === "none" ? ("none" as const) : clamp(shouldK),
+              isSlash(withoutComments[7]) && mayA !== null
+                ? mayA === "none"
+                  ? ("none" as const)
+                  : clamp(mayA)
+                : null,
+            ];
+          })()
+        : null;
 }
 
-export const deviceCMYK: postcss.PluginCreator<void> = Object.assign(
-  () =>
-    ({
-      postcssPlugin: "device-cmyk",
+/**
+ * @see https://drafts.csswg.org/css-color-4/#missing
+ */
+const noneBehavesAsZero = (component: number | "none") =>
+  component === "none" ? 0 : component;
 
-      Declaration(decl) {
-        const ast = valueParser(decl.value);
-        let changed = false;
+function knownLimitations([c, m, y, k, a]: CMYKColor): RestrictedCMYKColor {
+  return [
+    noneBehavesAsZero(c),
+    noneBehavesAsZero(m),
+    noneBehavesAsZero(y),
+    noneBehavesAsZero(k),
+    a === null ? 1 : noneBehavesAsZero(a),
+  ];
+}
 
-        ast.walk((node) => {
-          if (node.type !== "function" || node.value !== "device-cmyk") {
-            return;
+type DeviceCMYKOptions = {
+  result?: Map<string, string> | undefined;
+  toRGBProfile?: Uint8Array | undefined;
+};
+
+export const deviceCMYK: postcss.PluginCreator<DeviceCMYKOptions> =
+  Object.assign(
+    (opts: DeviceCMYKOptions | undefined) => {
+      const result = opts?.result ?? new Map<string, string>();
+      const toRGBProfile = opts?.toRGBProfile;
+
+      return {
+        postcssPlugin: "device-cmyk",
+
+        Declaration(decl) {
+          let changed = false;
+          const ast = valueParser(decl.value);
+          ast.walk((node) => {
+            if (node.type !== "function" || node.value !== "device-cmyk") {
+              return;
+            }
+            const parsed = parseCMYKComponents(node.nodes);
+            if (parsed === null) {
+              return;
+            }
+            const [c, m, y, k, a] = knownLimitations(parsed);
+            const cmyk = [c, m, y, k] as const;
+
+            // node.value = "color";
+            // node.nodes = [
+            //   { type: "word", value: "srgb" },
+            //   { type: "space", value: " " },
+            //   { type: "word", value: "0" },
+            //   { type: "space", value: " " },
+            //   { type: "word", value: "0" },
+            //   { type: "space", value: " " },
+            //   { type: "word", value: "0" },
+            //   {
+            //     type: "div",
+            //     value: "/",
+            //     before: " ",
+            //     after: " ",
+            //   },
+            //   { type: "word", value: "1" },
+
+            //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // ] as any;
+
+            // Do not walk into replaced node further
+            changed = true;
+            return !changed;
+          });
+          if (changed) {
+            decl.value = ast.toString();
           }
-          const components = parseCMYKComponents(node.nodes);
-          if (components === null) {
-            return;
-          }
-          console.log(components);
-
-          const message = valueParser.stringify(node.nodes).trim();
-          console.log(`[postcss-log] ${message}`);
-
-          node.value = "color";
-          node.nodes = [
-            { type: "word", value: "srgb" },
-            { type: "space", value: " " },
-            { type: "word", value: "0" },
-            { type: "space", value: " " },
-            { type: "word", value: "0" },
-            { type: "space", value: " " },
-            { type: "word", value: "0" },
-            {
-              type: "div",
-              value: "/",
-              before: " ",
-              after: " ",
-            },
-            { type: "word", value: "1" },
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ] as any;
-
-          changed = true;
-          // Do not walk into replaced node further
-          return false;
-        });
-
-        if (changed) {
-          decl.value = ast.toString();
-        }
-      },
-    }) as postcss.Plugin,
-  { postcss: true as const }
-);
+        },
+      } as postcss.Plugin;
+    },
+    { postcss: true as const }
+  );
 
 const css = `
 .foo {
@@ -155,17 +175,17 @@ const css = `
   --modern-percentage: device-cmyk(0 10% 20% 30%);
 
   --modern-alpha: device-cmyk(0 0.1 0.2 0.3 / 0.5);
+  --modern-alpha-percentage: device-cmyk(0 0.1 0.2 0.3 / 50%);
 
-  color: device-cmyk(単色);
-  background: linear-gradient(90deg, #fff, device-cmyk("グラデ1"), device-cmyk("グラデ2"));
-  box-shadow: 0 0 10px device-cmyk(影);
-  border: 1px solid device-cmyk(枠線);
+  --modern-allows-none: device-cmyk(0 none 0.2 0.3 / none);
+
+  --example-border: 1px solid device-cmyk(0 0 0 1);
+  --example-gradient: linear-gradient(device-cmyk(0 0 0 0), device-cmyk(1 0 0 0));
 }
 `;
 
-postcss([deviceCMYK])
-  .process(css, { from: undefined })
-  .then((result) => {
-    console.log("変換後CSS:");
-    console.log(result.css);
-  });
+const result = new Map<string, string>();
+const processor = postcss([deviceCMYK({ result })]);
+processor.process(css, { from: undefined }).then((result) => {
+  console.log(result.css);
+});
